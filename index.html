@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ลอยกระทงกันนะคะ 🕯️✨</title>
-    <!-- โหลดไลบรารี QRCode -->
+    <!-- โหลดไลบรารี QRCode และ LZ-String (สำหรับบีบอัดข้อมูลฝังใน URL) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -351,14 +352,14 @@
         .qrcode-modal.show { opacity: 1; }
 
         .qrcode-box {
-            background: #ffffff; padding: 24px; border-radius: 20px;
+            background: #ffffff; padding: 20px; border-radius: 20px;
             display: flex; flex-direction: column; align-items: center;
             box-shadow: 0 10px 30px rgba(255, 105, 180, 0.4); text-align: center;
-            max-width: 85%;
+            max-width: 92%;
         }
 
-        .qrcode-box h3 { color: #d81b60; font-size: 16px; margin-bottom: 6px; }
-        .qrcode-box p { color: #666; font-size: 12px; margin-bottom: 16px; }
+        .qrcode-box h3 { color: #d81b60; font-size: 16px; margin-bottom: 4px; }
+        .qrcode-box p { color: #666; font-size: 11px; margin-bottom: 12px; }
         
         #qrcode { 
             padding: 10px; 
@@ -370,11 +371,26 @@
         #qrcode img, #qrcode canvas {
             display: block;
             margin: 0 auto;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .action-btns-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+            width: 100%;
+            justify-content: center;
         }
 
         .btn-secondary {
-            margin-top: 16px; background: #fff0f5; color: #d81b60; border: 1px solid #ff69b4;
-            padding: 8px 18px; border-radius: 12px; font-size: 12px; font-weight: bold; cursor: pointer;
+            background: #fff0f5; color: #d81b60; border: 1px solid #ff69b4;
+            padding: 8px 14px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer;
+        }
+
+        .btn-copy {
+            background: #ff69b4; color: #fff; border: none;
+            padding: 8px 14px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer;
         }
 
         /* หน้าจอคำอธิษฐาน */
@@ -574,9 +590,12 @@
         <div class="qrcode-modal" id="qrModal">
             <div class="qrcode-box">
                 <h3>ให้หนูสแกน QR Code นี้ 💕</h3>
-                <p>เพื่อเปิดดูกระทงและคำอธิษฐานพร้อมกัน</p>
+                <p>สแกนหรือคัดลอกลิงก์ส่งให้หนูเปิดดูได้เลย</p>
                 <div id="qrcode"></div>
-                <button class="btn-secondary" onclick="closeQRModal()">ดูหน้ากระทงที่ลอยแล้ว ✨</button>
+                <div class="action-btns-row">
+                    <button class="btn-copy" id="copyLinkBtn" onclick="copyShareUrl()">คัดลอกลิงก์ 🔗</button>
+                    <button class="btn-secondary" onclick="closeQRModal()">ดูหน้ากระทง ✨</button>
+                </div>
             </div>
         </div>
 
@@ -602,14 +621,13 @@
 
     <script>
         let selectedKrathongIndex = 1;
+        let currentShareUrl = '';
         const photoDataList = Array(5).fill(null).map(() => ({ src: '', caption: '' }));
 
-        // เล่นเพลงทันทีที่เปิดเว็บ (พยายาม Bypass Autoplay Policy ของเบราว์เซอร์)
-        window.addEventListener('DOMContentLoaded', async () => {
+        window.addEventListener('DOMContentLoaded', () => {
             const audio = document.getElementById('bgMusic');
             audio.volume = 1.0;
             
-            // ฟังก์ชันสั่งเล่นเพลง
             const playAudio = () => {
                 audio.play().catch(err => {
                     console.log("Autoplay blocked, waiting for user interaction:", err);
@@ -617,19 +635,24 @@
             };
 
             playAudio();
-            // เผื่อกรณีเบราว์เซอร์บล็อก ให้เล่นทันทีที่มีการแตะหน้าจอครั้งแรก
             document.body.addEventListener('click', () => {
                 if (audio.paused) playAudio();
             }, { once: true });
 
-            // ตรวจสอบว่าเปิดผ่าน QR Code หรือไม่ (ฝั่งหนู)
-            const urlParams = new URLSearchParams(window.location.search);
-            const kid = urlParams.get('kid');
+            // ตรวจสอบข้อมูลที่ฝังอยู่ใน URL (รองรับทั้ง #d= และ ?d=)
+            let encodedData = null;
+            if (window.location.hash && window.location.hash.startsWith('#d=')) {
+                encodedData = window.location.hash.substring(3);
+            } else {
+                const urlParams = new URLSearchParams(window.location.search);
+                encodedData = urlParams.get('d');
+            }
             
-            if (kid) {
+            if (encodedData) {
                 try {
-                    const savedData = await getFromDB(kid);
-                    if (savedData) {
+                    const jsonStr = LZString.decompressFromEncodedURIComponent(encodedData);
+                    if (jsonStr) {
+                        const savedData = JSON.parse(jsonStr);
                         selectedKrathongIndex = savedData.k || 1;
                         document.getElementById('krathongDisplay').src = `กระทง${selectedKrathongIndex}.png`;
                         document.getElementById('wishInput').value = savedData.w || '';
@@ -657,55 +680,56 @@
                     dragEl.style.transform = 'translateX(-50%)';
 
                     mainKrathong.classList.add('floating');
-
-                    // แสดงข้อความแนะนำให้ลองแตะที่กระทง (เฉพาะฝั่งหนู)
                     document.getElementById('tapHintBanner').style.display = 'block';
 
                 } catch (e) {
-                    console.error("Load DB failed", e);
+                    console.error("Decode URL data failed", e);
+                    document.getElementById('krathongDisplay').src = `กระทง1.png`;
                 }
             } else {
                 document.getElementById('krathongDisplay').src = `กระทง1.png`;
             }
         });
 
-        // ระบบฐานข้อมูล IndexedDB
-        const dbName = "KrathongLoveDB";
-        const storeName = "krathongStore";
+        // ฟังก์ชันย่อรูปภาพให้ขนาดกะทัดรัดพอดีกับ QR Code (ด้านยาวสุด 85px, คุณภาพ WebP/JPEG ต่ำพิเศษแต่ชัดบนจอมือถือ)
+        function createTinyThumbnail(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const maxSide = 85;
+                        let width = img.width;
+                        let height = img.height;
 
-        function openDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName, 1);
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => resolve(request.result);
-                request.onupgradeneeded = (e) => {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains(storeName)) {
-                        db.createObjectStore(storeName, { keyPath: "id" });
-                    }
+                        if (width > height) {
+                            if (width > maxSide) {
+                                height = Math.round((height * maxSide) / width);
+                                width = maxSide;
+                            }
+                        } else {
+                            if (height > maxSide) {
+                                width = Math.round((width * maxSide) / height);
+                                height = maxSide;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // ลองใช้ WebP ก่อนเพราะบีบอัดได้เล็กกว่า JPEG มาก หากเบราว์เซอร์ไม่รองรับจะสลับเป็น JPEG อัตโนมัติ
+                        let dataUrl = canvas.toDataURL('image/webp', 0.35);
+                        if (!dataUrl.startsWith('data:image/webp')) {
+                            dataUrl = canvas.toDataURL('image/jpeg', 0.35);
+                        }
+                        resolve(dataUrl);
+                    };
+                    img.src = event.target.result;
                 };
-            });
-        }
-
-        async function saveToDB(id, data) {
-            const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction(storeName, "readwrite");
-                const store = transaction.objectStore(storeName);
-                const request = store.put({ id: id, payload: data });
-                request.onsuccess = () => resolve(true);
-                request.onerror = () => reject(request.error);
-            });
-        }
-
-        async function getFromDB(id) {
-            const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction(storeName, "readonly");
-                const store = transaction.objectStore(storeName);
-                const request = store.get(id);
-                request.onsuccess = () => resolve(request.result ? request.result.payload : null);
-                request.onerror = () => reject(request.error);
+                reader.readAsDataURL(file);
             });
         }
 
@@ -781,17 +805,16 @@
             photosInputList.appendChild(row);
         }
 
-        function uploadPhoto(event, index) {
+        async function uploadPhoto(event, index) {
             const file = event.target.files[0];
             if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    photoDataList[index].src = e.target.result;
-                    document.getElementById(`upBtn${index}`).style.background = '#e8f5e9';
-                    document.getElementById(`upBtn${index}`).style.color = '#2e7d32';
-                    document.getElementById(`upBtn${index}`).innerText = `✓ รูปที่ ${index + 1}`;
-                }
-                reader.readAsDataURL(file);
+                const btn = document.getElementById(`upBtn${index}`);
+                btn.innerText = '⏳ ย่อรูป...';
+                const tinySrc = await createTinyThumbnail(file);
+                photoDataList[index].src = tinySrc;
+                btn.style.background = '#e8f5e9';
+                btn.style.color = '#2e7d32';
+                btn.innerText = `✓ รูปที่ ${index + 1}`;
             }
         }
 
@@ -851,35 +874,52 @@
             document.addEventListener('mouseup', endDrag);
         }
 
-        async function launchKrathong() {
+        function launchKrathong() {
             document.getElementById('launchBtn').style.display = 'none';
             document.getElementById('mainKrathong').classList.add('floating');
 
-            const kid = 'k_' + Math.random().toString(36).substring(2, 9);
+            // เตรียมข้อมูลทั้งหมดแล้วบีบอัดฝังลงในลิงก์ Hash (#d=...)
             const krathongData = {
                 k: selectedKrathongIndex,
                 w: document.getElementById('wishInput').value,
                 p: photoDataList.map(item => ({ s: item.src, c: item.caption }))
             };
 
-            await saveToDB(kid, krathongData);
-            const shareUrl = `${window.location.origin}${window.location.pathname}?kid=${kid}`;
+            const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(krathongData));
+            currentShareUrl = `${window.location.origin}${window.location.pathname}#d=${compressed}`;
 
             const qrContainer = document.getElementById('qrcode');
             qrContainer.innerHTML = '';
             
-            new QRCode(qrContainer, {
-                text: shareUrl,
-                width: 170,
-                height: 170,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.M
-            });
+            try {
+                // สร้าง QR Code ขนาดใหญ่ขึ้นและใช้ CorrectLevel.L เพื่อรองรับข้อมูลรูปภาพและข้อความได้ครบถ้วน
+                new QRCode(qrContainer, {
+                    text: currentShareUrl,
+                    width: 220,
+                    height: 220,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.L
+                });
+            } catch (err) {
+                console.error("QR Overflow:", err);
+                qrContainer.innerHTML = '<p style="color:#d81b60;font-size:11px;padding:10px;">ข้อมูลรูปภาพมีขนาดใหญ่เกินกว่า QR Code จะจุได้<br>กรุณากดปุ่ม <b>"คัดลอกลิงก์"</b> ด้านล่างเพื่อส่งให้หนูแทนนะคะ 💕</p>';
+            }
 
             const modal = document.getElementById('qrModal');
             modal.style.display = 'flex';
             setTimeout(() => modal.classList.add('show'), 10);
+        }
+
+        function copyShareUrl() {
+            if (!currentShareUrl) return;
+            navigator.clipboard.writeText(currentShareUrl).then(() => {
+                const copyBtn = document.getElementById('copyLinkBtn');
+                copyBtn.innerText = '✓ คัดลอกลิงก์แล้ว!';
+                setTimeout(() => { copyBtn.innerText = 'คัดลอกลิงก์ 🔗'; }, 2500);
+            }).catch(() => {
+                prompt("คัดลอกลิงก์นี้ส่งให้หนูได้เลย:", currentShareUrl);
+            });
         }
 
         function closeQRModal() {
@@ -890,7 +930,6 @@
 
         function openMemoryModal() {
             if (document.getElementById('mainKrathong').classList.contains('floating')) {
-                // ซ่อนป้ายแนะนำเมื่อหนูเริ่มกดดูแล้ว
                 document.getElementById('tapHintBanner').style.display = 'none';
 
                 const wish = document.getElementById('wishInput').value;
