@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ลอยกระทงกับเธอ 🕯️✨</title>
+    <title>ลอยกระทงกันนะคะ 🕯️✨</title>
     <!-- โหลดไลบรารี QRCode -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
@@ -217,7 +217,7 @@
             animation: pulseText 1.5s infinite;
         }
 
-        /* ป้ายบอกให้ลองแตะที่กระทง (สำหรับแฟน) */
+        /* ป้ายบอกให้ลองแตะที่กระทง (สำหรับหนู) */
         .tap-hint-banner {
             position: absolute;
             bottom: 45px;
@@ -338,7 +338,7 @@
             100% { transform: translateX(-50%) scale(1); }
         }
 
-        /* ป๊อปอัป QR Code ให้แฟนสแกน */
+        /* ป๊อปอัป QR Code ให้หนูสแกน */
         .qrcode-modal {
             position: absolute; inset: 0;
             background: rgba(5, 10, 20, 0.85);
@@ -519,8 +519,8 @@
 
         <div class="drag-hint-fixed" id="dragHint" style="display: none;">✨ แตะลากธูปเทียนไปปักลงกระทง</div>
         
-        <!-- ข้อความแนะนำให้ลองแตะที่กระทง (สำหรับแฟน) -->
-        <div class="tap-hint-banner" id="tapHintBanner">✨ ลองแตะที่กระทงดูสิ</div>
+        <!-- ข้อความแนะนำให้ลองแตะที่กระทง (สำหรับหนู) -->
+        <div class="tap-hint-banner" id="tapHintBanner">✨ หนูลองแตะที่กระทงดูสิ</div>
 
         <!-- กระทงหลัก -->
         <div class="main-krathong-wrapper" id="mainKrathong" onclick="openMemoryModal()">
@@ -561,9 +561,9 @@
             </div>
 
             <div id="step3Content" style="display: none;">
-                <div class="panel-title">เขียนคำอธิษฐานของเราสองคน 💌</div>
+                <div class="panel-title">เขียนคำอธิษฐานให้หนู 💌</div>
                 <div class="form-group">
-                    <textarea id="wishInput" rows="2" placeholder="พิมพ์คำอธิษฐานที่นี่..."></textarea>
+                    <textarea id="wishInput" rows="2" placeholder="พิมพ์คำอธิษฐานให้หนูที่นี่..."></textarea>
                 </div>
                 <button class="btn-primary" onclick="finishWish()">พิมพ์คำอธิษฐานเสร็จสิ้น 🕯️</button>
             </div>
@@ -573,8 +573,8 @@
         <!-- ป๊อปอัป QR Code -->
         <div class="qrcode-modal" id="qrModal">
             <div class="qrcode-box">
-                <h3>ให้แฟนสแกน QR Code นี้ 💕</h3>
-                <p>เพื่อเปิดดูกระทงและคำอธิษฐานของเราพร้อมกัน</p>
+                <h3>ให้หนูสแกน QR Code นี้ 💕</h3>
+                <p>เพื่อเปิดดูกระทงและคำอธิษฐานพร้อมกัน</p>
                 <div id="qrcode"></div>
                 <button class="btn-secondary" onclick="closeQRModal()">ดูหน้ากระทงที่ลอยแล้ว ✨</button>
             </div>
@@ -584,7 +584,7 @@
         <div class="memory-overlay" id="memoryOverlay">
             <button class="close-btn" onclick="closeMemoryModal()">✕</button>
             <div class="memory-title">คำอธิษฐาน ❤️</div>
-            <div class="memory-wish-text" id="displayWishText">"ขอให้เรามีความสุข รักกันนานๆ..."</div>
+            <div class="memory-wish-text" id="displayWishText">"ขอให้หนูมีความสุข รักกันนานๆ..."</div>
             
             <div class="polaroid-scatter-container" id="scatterContainer"></div>
         </div>
@@ -622,7 +622,7 @@
                 if (audio.paused) playAudio();
             }, { once: true });
 
-            // ตรวจสอบว่าเปิดผ่าน QR Code หรือไม่ (ฝั่งแฟน)
+            // ตรวจสอบว่าเปิดผ่าน QR Code หรือไม่ (ฝั่งหนู)
             const urlParams = new URLSearchParams(window.location.search);
             const kid = urlParams.get('kid');
             
@@ -658,7 +658,7 @@
 
                     mainKrathong.classList.add('floating');
 
-                    // แสดงข้อความแนะนำให้ลองแตะที่กระทง (เฉพาะฝั่งแฟน)
+                    // แสดงข้อความแนะนำให้ลองแตะที่กระทง (เฉพาะฝั่งหนู)
                     document.getElementById('tapHintBanner').style.display = 'block';
 
                 } catch (e) {
@@ -890,11 +890,11 @@
 
         function openMemoryModal() {
             if (document.getElementById('mainKrathong').classList.contains('floating')) {
-                // ซ่อนป้ายแนะนำเมื่อแฟนเริ่มกดดูแล้ว
+                // ซ่อนป้ายแนะนำเมื่อหนูเริ่มกดดูแล้ว
                 document.getElementById('tapHintBanner').style.display = 'none';
 
                 const wish = document.getElementById('wishInput').value;
-                document.getElementById('displayWishText').innerText = wish.trim() !== "" ? `“ ${wish} ”` : "“ ขอให้เรามีความสุข รักกันนานๆ ❤️ ”";
+                document.getElementById('displayWishText').innerText = wish.trim() !== "" ? `“ ${wish} ”` : "“ ขอให้หนูมีความสุข รักกันนานๆ ❤️ ”";
                 
                 const scatterContainer = document.getElementById('scatterContainer');
                 scatterContainer.innerHTML = '';
@@ -943,7 +943,7 @@
 
         function openFullPhoto(data) {
             const imgSrc = data.src || 'https://via.placeholder.com/300/ffb6c1/ffffff?text=Love';
-            const capText = data.caption || 'ความทรงจำของเรา';
+            const capText = data.caption || 'ความทรงจำของหนู';
             
             document.getElementById('fullImg').src = imgSrc;
             document.getElementById('fullCaption').innerText = capText;
